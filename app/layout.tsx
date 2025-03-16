@@ -34,7 +34,7 @@ export default function RootLayout({
             width={100}
             height={100}
             alt="Picture of the author"
-          />
+          /> 
         </nav>
         {children}
       </body>
