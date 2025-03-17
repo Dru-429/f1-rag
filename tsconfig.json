@@ -1,13 +1,16 @@
 {
   "compilerOptions": {
+    // "target": "esnext",
     "target": "ES2017",
+    "module": "commonjs",
     "lib": ["dom", "dom.iterable", "esnext"],
     "allowJs": true,
     "skipLibCheck": true,
     "strict": false,
     "noEmit": true,
     "esModuleInterop": true,
-    "module": "esnext",
+    // "module": "esnext",
+    "forceConsistentCasingInFileNames": true,
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
@@ -18,8 +21,10 @@
         "name": "next"
       }
     ],
+    "baseUrl": ".",
     "paths": {
-      "@/*": ["./*"]
+      "@/*": ["./*"],
+      "langchain/*": ["node_modules/langchain/*"]
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
