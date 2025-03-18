@@ -1,8 +1,7 @@
 import { DataAPIClient } from "@datastax/astra-db-ts"
-// import { PuppeteerWebBaseLoader } from "langchain/document_loaders/web/puppeteer";
 import OpenAI from "openai"
-import { PuppeteerWebBaseLoader } from "langchain/document_loaders/web/puppeteer";
 import { RecursiveCharacterTextSplitter } from 'langchain/text_splitter'
+import puppeteer from 'puppeteer'
 
 import "dotenv/config"
 
@@ -32,10 +31,10 @@ const f1Data = [
 ]
 
 const client = new DataAPIClient(ASTRA_DB_APPLICATION_TOKEN)
-const db = client.db(ASTRA_DB_API_ENDPOINT, { namespace: ASTRA_DB_NAMESPACE})
+const db = client.db(ASTRA_DB_API_ENDPOINT, { namespace: ASTRA_DB_NAMESPACE })
 
 const splitter = new RecursiveCharacterTextSplitter({
-    chunkSize: 512, 
+    chunkSize: 512,
     chunkOverlap: 100
 })
 
@@ -52,10 +51,10 @@ const createCollection = async (similarityMetric: SimilarityMetric = "dot_produc
 
 const loadSampleData = async () => {
     const collection = await db.collection(ASTRA_DB_COLLECTION)
-    for await (const url of f1Data ) {
+    for await (const url of f1Data) {
         const content = await scrapePage(url)
         const chunks = await splitter.splitText(content)
-        for await ( const chunk of chunks) {
+        for await (const chunk of chunks) {
             const embedding = await openai.embeddings.create({
                 model: "text-embedding-3-small",
                 input: chunk,
@@ -71,25 +70,33 @@ const loadSampleData = async () => {
             console.log(res)
         }
     }
-}                 
-
-
-const scrapePage = async (url: string) =>{
-    const loader = new PuppeteerWebBaseLoader(url, {
-        luanchOptions:{
-            headless: true
-        },
-        gotoOptions: {
-            waitUntil: "domcontentloaded"
-        },
-        evaluate: async (page, browser) => {
-            const result = await page.evaluate(() => document.body.innerHTML)
-            await browser.close()
-            return result
-        }
-
-    })
-    return ( await loader.loader.scrape())?. replace(/<[^>]*>?/gm, '')
 }
+
+// Custom scraping function using puppeteer directly without LangChain
+const scrapePage = async (url: string): Promise<string> => {
+    const browser = await puppeteer.launch({ 
+        headless: true // Using the new headless mode for newer puppeteer versions
+    });
+    const page = await browser.newPage();
+    
+    try {
+        await page.goto(url, { 
+            waitUntil: 'domcontentloaded',
+            timeout: 60000 // 60 seconds timeout
+        });
+        
+        // Get the page content
+        const content = await page.evaluate(() => {
+            return document.body.innerText || document.body.textContent || '';
+        });
+        
+        return content;
+    } catch (error) {
+        console.error(`Error scraping ${url}: ${error.message}`);
+        return '';
+    } finally {
+        await browser.close();
+    }
+};
 
 createCollection().then(() => loadSampleData())
